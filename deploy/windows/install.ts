@@ -1,4 +1,3 @@
-// @ts-ignore
 import { service, serviceDefinition } from "../../src/config/windows-service";
 
 service.on("install", () => {

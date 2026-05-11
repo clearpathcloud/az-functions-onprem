@@ -5,7 +5,7 @@
         "forceConsistentCasingInFileNames": true,
         "strict": true,
         "target": "ES2017",
-        "rootDir": "./src",
+        "rootDir": ".",
         "outDir": "./dist",
         "esModuleInterop": true,
         "sourceMap": true,
