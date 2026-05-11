@@ -1,23 +1,33 @@
 # Use the official Node.js image as the base image
-FROM node:18.18-alpine
+FROM node:slim
+
+LABEL org.opencontainers.image.title="web-integrations-template"
+LABEL org.opencontainers.image.description="Evergreen Node TypeScript/Express web integrations template"
+LABEL org.opencontainers.image.licenses="MIT"
+LABEL org.opencontainers.image.source="https://github.com/alirobe/web-integrations-template"
+
+ENV NODE_ENV=production
 
 # Set the working directory inside the image
 WORKDIR /app
 
 # Copy package.json and package-lock.json into the image
 COPY package*.json ./
-COPY tsconfig.json ./
-COPY nodemon.json ./
 # DO NOT COPY .env OR local.settings.json INTO THE IMAGE
 
-# Install dependencies
-RUN npm ci
+# Install runtime dependencies
+RUN npm ci --omit=dev
 
 # Copy the remaining application files into the image
 COPY src ./src/
 
+USER node
+
 # Expose the port your application will run on
 EXPOSE 3000
+
+HEALTHCHECK --interval=30s --timeout=3s --start-period=10s --retries=3 \
+  CMD node -e "fetch('http://127.0.0.1:' + (process.env.PORT || 3000) + '/healthz').then(r => process.exit(r.ok ? 0 : 1)).catch(() => process.exit(1))"
 
 # Start the application
 CMD ["npm", "start"]

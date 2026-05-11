@@ -1,16 +1,16 @@
 # AGENTS.md
 
 ## Runtime
-- This is a small Node 18.18 TypeScript/Express service run directly with `ts-node`; there is no compile step in normal development.
-- Main entrypoint is `src/server.ts`; `npm start` runs `nodemon`, which executes `ts-node ./src/server.ts` and watches `src` plus `local.settings.json`.
-- Express views live under `src/views`; because the app runs from TypeScript via `ts-node`, a future build step must copy EJS views or adjust the view path.
+- This is a small evergreen Node TypeScript/Express service run directly with native Node TypeScript stripping; there is no compile step in normal development.
+- Main entrypoint is `src/server.ts`; `npm start` runs `node ./src/server.ts`, and `npm run dev` runs `nodemon` for local restarts.
+- Express views live under `src/views`; because the app runs from TypeScript source, a future build step must copy EJS views or adjust the view path.
 
 ## Commands
-- Use `npm install` for local setup; docs and scripts are npm-based even though a `pnpm-lock.yaml` exists.
-- `npm start` starts the local service.
-- There are no `test`, `lint`, `build`, or `typecheck` scripts. After dependencies are installed, use `npx tsc --noEmit` for a focused TypeScript check.
-- Windows service commands are `npm run windows-install` and `npm run windows-uninstall`; both execute TypeScript files under `deploy/windows` via `ts-node`.
-- `npm run docker-package` builds a Docker image and saves `web-integrations-template-docker-image.tar` using a Windows-style output path.
+- Use `npm install` for local setup; docs and scripts are npm-based.
+- `npm run dev` starts the local watched service; `npm start` starts the service without a watcher.
+- Use `npm run check` or `npm run typecheck` for a focused TypeScript check. There are no `test`, `lint`, or `build` scripts.
+- Windows service commands are `npm run windows-install` and `npm run windows-uninstall`; both execute TypeScript files under `deploy/windows` via `node`.
+- `npm run docker-package` builds a Docker image and saves `web-integrations-template-docker-image.tar`.
 
 ## Config And Secrets
 - `local.settings.json` is gitignored and must not be committed; start it with `{ "$schema": "./local.settings.schema.json" }` and use the schema for required keys.
@@ -19,7 +19,7 @@
 - Auth is bypassed for localhost unless `NODE_ENV=production`; otherwise requests need either header `token` matching `AZURE_CUSTOM_HEADER_TOKEN` or query `apiKey` matching `WEB_INTEGRATIONS_API_KEY`.
 
 ## Deployment Notes
-- The Dockerfile uses `node:18.18-alpine`, copies `package*.json`, and runs `npm ci`; keep `package-lock.json` current or Docker/CI installs will fail.
+- The Dockerfile uses `node:slim`, copies `package*.json`, runs `npm ci --omit=dev`, sets `NODE_ENV=production`, and exposes `/healthz`; keep `package-lock.json` current or Docker/CI installs will fail.
 - Docker deployments should provide environment variables matching `local.settings.schema.json`; `local.settings.json` is intentionally not copied into the image.
-- The optional Docker GitHub Actions template is stored at `deploy/docker/github-workflows-docker.yml`; it is not active until moved to `.github/workflows/docker.yml`.
-- The Windows service definition runs `node_modules\nodemon\bin\nodemon.js`; the README warns this template uses nodemon even in production and should be hardened before real use.
+- CI typechecking is active at `.github/workflows/ci.yml`; the Docker publishing workflow remains an optional template at `deploy/docker/github-workflows-docker.yml` until moved to `.github/workflows/docker.yml`.
+- The Windows service definition runs `src/server.ts` directly through Node.

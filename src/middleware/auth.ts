@@ -1,6 +1,6 @@
-import { Request, Response, NextFunction } from "express";
-import getSettings from "../utils/settings";
-import { log } from "../utils/log";
+import type { Request, Response, NextFunction } from "express";
+import getSettings from "../utils/settings.ts";
+import { log } from "../utils/log.ts";
 
 const apiKey = getSettings("WEB_INTEGRATIONS_API_KEY");
 const azureToken = getSettings("AZURE_CUSTOM_HEADER_TOKEN");

@@ -1,9 +1,15 @@
-import getSettings from "./settings";
-import { serviceDefinition } from "../config/windows-service";
+import { createRequire } from "module";
+import getSettings from "./settings.ts";
 
-var EventLogger = require("node-windows").EventLogger;
-var winLog = new EventLogger(serviceDefinition.name);
-let windows = getSettings("SERVICE_TYPE") == "windows";
+const localRequire = createRequire(import.meta.url);
+const windows = getSettings("SERVICE_TYPE") == "windows";
+let winLog: any;
+
+if (windows) {
+    const { serviceDefinition } = await import("../config/windows-service.ts");
+    const { EventLogger } = localRequire("node-windows");
+    winLog = new EventLogger(serviceDefinition.name);
+}
 
 export function log(message: string, level: "info" | "warn" = "info") {
     if (level == "info") {

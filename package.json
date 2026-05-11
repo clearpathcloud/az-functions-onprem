@@ -1,25 +1,35 @@
 {
     "name": "web-integrations-template",
-    "version": "1.0.0",
+    "version": "2.0.0",
     "description": "A sample web integrations project that can be run in a Windows Environment",
+    "type": "module",
     "main": "index.js",
     "scripts": {
-        "start": "nodemon",
-        "windows-install": "ts-node ./deploy/windows/install.ts",
-        "windows-uninstall": "ts-node ./deploy/windows/uninstall.ts",
-        "docker-package": "docker build -t \"web-integrations-template\" . && docker save -o .\\web-integrations-template-docker-image.tar web-integrations-template"
+        "dev": "nodemon",
+        "start": "node ./src/server.ts",
+        "check": "npm run typecheck",
+        "typecheck": "tsc --noEmit",
+        "windows-install": "node ./deploy/windows/install.ts",
+        "windows-uninstall": "node ./deploy/windows/uninstall.ts",
+        "docker-package": "docker build -t web-integrations-template . && docker save -o web-integrations-template-docker-image.tar web-integrations-template"
     },
     "author": "https://github.com/alirobe",
-    "license": "ISC",
+    "license": "MIT",
+    "engines": {
+        "node": ">=23.6.0"
+    },
     "dependencies": {
-        "@azure/storage-blob": "^12.31.0",
-        "@types/express": "^5.0.6",
-        "@types/node-windows": "^0.1.6",
-        "ejs": "^5.0.2",
-        "express": "^5.2.1",
-        "node-windows": "^1.0.0-beta.8",
-        "nodemon": "^3.1.14",
-        "ts-node": "^10.9.2",
-        "typescript": "^6.0.3"
+        "@azure/storage-blob": "^12.0.0",
+        "ejs": "^5.0.0",
+        "express": "^5.0.0",
+        "helmet": "^8.0.0",
+        "node-windows": "^1.0.0-beta.8"
+    },
+    "devDependencies": {
+        "@types/express": "^5.0.0",
+        "@types/node": "^25.0.0",
+        "@types/node-windows": "^0.1.0",
+        "nodemon": "^3.0.0",
+        "typescript": "^6.0.0"
     }
 }

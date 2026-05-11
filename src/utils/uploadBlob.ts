@@ -1,6 +1,6 @@
 import { BlobClient } from "@azure/storage-blob";
-import getSettings from "./settings";
-import { log } from "./log";
+import getSettings from "./settings.ts";
+import { log } from "./log.ts";
 
 export default async function uploadBlob(fileName: string, fileContents: string) {
     let connStrings = [];
@@ -17,7 +17,7 @@ export default async function uploadBlob(fileName: string, fileContents: string)
             // connect and upload
             let blobClient = new BlobClient(fileConStr);
             let blockBlobClient = blobClient.getBlockBlobClient();
-            let uploadBlobResponse = await blockBlobClient.upload(fileContents, fileContents.length);
+            await blockBlobClient.upload(fileContents, fileContents.length);
             log(`  Upload block blob ${blobClient.containerName}/${blobClient.name} successfully`);
         })
     );

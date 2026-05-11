@@ -5,6 +5,7 @@
 - It relies on rotatable keys for authentication.
 - It relies on Azure App Proxy for limited internal publishing.
 - It was originally designed to facilitate an [Azure Integration Services](https://azure.microsoft.com/en-us/products/category/integration) pattern.
+- It is distributed under the MIT license.
  
 ## Good to know:
 
@@ -31,19 +32,18 @@ For OpSec reasons I won't give any further guidance.
 
 ## Local development: getting started
 
-- Ensure node version manager (`nvm`) is installed on your machine.
+- Ensure a current Node.js release is installed on your machine.
 - cd to this directory
-- `nvm install <VERSION_NUMBER>` (check `.nvmrc` for version number)
-- `nvm use lts`
 - `npm install`
 - Use VS Code to create `local.settings.json` file in root, containing `{"$schema": "./local.settings.schema.json"}`. 
 - Close and re-open the file. intellisense will pick up the schema and provide autocomplete and validation. Provide required settings and save.
-- Run `npm start`
-- No compile step exists. nodemon will restart the service every time you make a change.
+- Run `npm run dev`
+- No compile step exists. Native Node TypeScript stripping runs the source directly, so use Node.js `23.6.0` or newer; nodemon restarts the local service every time you make a change.
+- Run `npm run check` before committing changes.
 
 
 ## Deployment
 
-Partial instructions in the relevant `deploy` folder. 
+Partial instructions in the relevant `deploy` folder. The Docker image exposes `/healthz` and runs with `NODE_ENV=production`.
 
-#### Security note: This template is a quick start template only. It uses nodemon in 'production'. Fix this before going live. ####
+#### Security note: This template is a quick start template only. Review secrets, logging, restart policy, and access controls before going live. ####
