@@ -43,6 +43,13 @@
                     ],
                     "maximum": 65535,
                     "minimum": 1
+                },
+                "CORS_ORIGINS": {
+                    "type": "string",
+                    "description": "Comma-separated list of allowed CORS origins. Leave blank to disable CORS entirely.",
+                    "examples": [
+                        "https://internal.example.com,https://admin.example.com"
+                    ]
                 }
             },
             "required": [
