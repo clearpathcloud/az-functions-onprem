@@ -1,25 +1,43 @@
 {
-    "name": "web-integrations-template",
-    "version": "1.0.0",
-    "description": "A sample web integrations project that can be run in a Windows Environment",
-    "main": "index.js",
+    "name": "az-functions-onprem",
+    "version": "2.0.0",
+    "description": "Self-hosted, Azure-Functions-style integrations runtime for Windows Server or Docker behind the firewall.",
+    "type": "module",
+    "private": true,
     "scripts": {
-        "start": "nodemon",
-        "windows-install": "ts-node ./deploy/windows/install.ts",
-        "windows-uninstall": "ts-node ./deploy/windows/uninstall.ts",
-        "docker-package": "docker build -t \"web-integrations-template\" . && docker save -o .\\web-integrations-template-docker-image.tar web-integrations-template"
+        "dev": "node --watch ./src/server.ts",
+        "start": "node ./src/server.ts",
+        "configure": "node ./scripts/configure.ts",
+        "check": "npm run typecheck",
+        "typecheck": "tsc --noEmit",
+        "windows-install": "node ./deploy/windows/install.ts",
+        "windows-uninstall": "node ./deploy/windows/uninstall.ts",
+        "docker-package": "docker build -t az-functions-onprem . && docker save -o az-functions-onprem-docker-image.tar az-functions-onprem"
     },
     "author": "https://github.com/alirobe",
-    "license": "ISC",
+    "license": "MIT",
+    "engines": {
+        "node": ">=23.6.0"
+    },
     "dependencies": {
-        "@azure/storage-blob": "^12",
-        "@types/express": "^4",
-        "@types/node-windows": "^0",
-        "ejs": "^3",
-        "express": "^4",
-        "node-windows": "^1.0.0-beta.8",
-        "nodemon": "^3",
-        "ts-node": "^10",
-        "typescript": "^5"
+        "@azure/storage-blob": "^12.0.0",
+        "cors": "^2.8.6",
+        "ejs": "^5.0.0",
+        "express": "^5.0.0",
+        "express-rate-limit": "^8.5.1",
+        "helmet": "^8.0.0",
+        "node-cron": "^4.2.1",
+        "node-windows": "^1.0.0-beta.8"
+    },
+    "devDependencies": {
+        "@types/cors": "^2.8.19",
+        "@types/express": "^5.0.0",
+        "@types/node": "^25.0.0",
+        "@types/node-windows": "^0.1.0",
+        "typescript": "^6.0.0"
+    },
+    "overrides": {
+        "fast-xml-parser": "^5.8.0",
+        "fast-xml-builder": "^1.2.0"
     }
 }

@@ -2,30 +2,55 @@
 <html lang="en">
 
 <head>
-    <title>Web Integrations Template</title>
+    <title>OnPrem Functions</title>
     <%- include("./partials/header.ejs") -%>
 </head>
 
 <body>
-    <div class="container py-5">
-        <h1 class="mb-4">Web Integrations Template</h1>
-        <div class="list-group">
-            <a href="#" class="list-group-item list-group-item-action" onclick="runAction('sampleAction')">
-                <div class="d-flex w-100 justify-content-between">
-                    <h5 class="mb-1">Run Integration Actions</h5>
+    <main class="container">
+        <hgroup>
+            <h1>OnPrem Functions</h1>
+            <p>Self-hosted integrations. Invoke an action below or hit <code>GET /action/&lt;name&gt;</code> directly.</p>
+        </hgroup>
+
+        <% if (actions.length === 0) { %>
+            <article>
+                <p>No actions registered. Define one with <code>defineAction(...)</code> in <code>src/actions/</code> and import it from <code>src/actions/index.ts</code>.</p>
+            </article>
+        <% } %>
+
+        <% actions.forEach(function(action) {
+            const kind = action.stream ? "stream" : action.steps ? "sequence" : "handler";
+            const lastRun = getLastRun(action.name);
+        %>
+            <article>
+                <header style="display: flex; align-items: baseline; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.5rem;">
+                    <strong style="flex: 1; min-width: 10rem;"><%= action.name %></strong>
+                    <% const methods = action.methods && action.methods.length ? action.methods : ["GET", "POST"]; %>
+                    <small style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
+                        <kbd><%= kind %></kbd>
+                        <% if (methods.length > 1 || methods[0] !== "GET") { %><kbd>method: <%= methods.join("/") %></kbd><% } %>
+                        <% if (action.schedule) { %><kbd>cron: <%= action.schedule %></kbd><% } %>
+                        <% if (action.timeoutMs) { %><kbd>timeout: <%= action.timeoutMs %>ms</kbd><% } %>
+                        <% if (action.authLevel) { %><kbd>authLevel: <%= action.authLevel %></kbd><% } %>
+                        <% if (action.concurrency) { %><kbd>concurrency: <%= action.concurrency %></kbd><% } %>
+                        <% if (action.onSuccess) { %><kbd>hook</kbd><% } %>
+                        <% if (lastRun) { %>
+                            <kbd title="<%= lastRun.at %> (<%= lastRun.durationMs %>ms <%= lastRun.status %>)">last: <%= new Date(lastRun.at).toLocaleTimeString() %><% if (lastRun.status === "fail") { %> ✗<% } %></kbd>
+                        <% } else { %>
+                            <kbd>last: never</kbd>
+                        <% } %>
+                    </small>
+                    <button type="button" data-action="<%= action.name %>" data-method="<%= methods[0] %>" style="margin: 0;">Run</button>
+                </header>
+                <p style="margin: 0;"><%= action.description %></p>
+                <div class="action-output-wrapper" data-output-wrapper-for="<%= action.name %>" hidden>
+                    <button type="button" class="action-output-close" data-close-output="<%= action.name %>" aria-label="Close output">&times;</button>
+                    <pre class="action-output" data-output-for="<%= action.name %>" aria-live="polite" tabindex="0"></pre>
                 </div>
-                <p class="mb-1">Copy datasets between systems</p>
-            </a>
-        </div>
-        <div class="list-group">
-            <a href="/transactions" class="list-group-item list-group-item-action">
-                <div class="d-flex w-100 justify-content-between">
-                    <h5 class="mb-1">Process Transactions</h5>
-                </div>
-                <p class="mb-1">Manage individual records</p>
-            </a>
-        </div>
-    </div>
+            </article>
+        <% }) %>
+    </main>
     <%- include("./partials/footer.ejs") -%>
 </body>
 

@@ -1,20 +1,32 @@
 {
     "$schema": "https://json.schemastore.org/tsconfig",
     "compilerOptions": {
-        "module": "CommonJS",
+        "module": "NodeNext",
+        "moduleResolution": "NodeNext",
         "forceConsistentCasingInFileNames": true,
         "strict": true,
-        "target": "ES2017",
-        "rootDir": "./src",
+        "exactOptionalPropertyTypes": true,
+        "noUncheckedIndexedAccess": true,
+        "verbatimModuleSyntax": true,
+        "erasableSyntaxOnly": true,
+        "target": "ES2022",
+        "rootDir": ".",
         "outDir": "./dist",
+        "noEmit": true,
         "esModuleInterop": true,
+        "allowImportingTsExtensions": true,
+        "rewriteRelativeImportExtensions": true,
         "sourceMap": true,
         "declaration": true,
         "lib": ["ES2017", "DOM"]
     },
+    "include": [
+        "src/**/*.ts",
+        "deploy/windows/**/*.ts",
+        "scripts/**/*.ts"
+    ],
     "exclude": [
-        "service*/*.ts",
         "node_modules",
-    "dist"
+        "dist"
     ]
 }

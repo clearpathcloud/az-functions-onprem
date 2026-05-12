@@ -5,10 +5,7 @@
             "type": "node",
             "request": "launch",
             "name": "Launch Program",
-            "runtimeArgs": [
-                "-r",
-                "ts-node/register"
-            ],
+            "runtimeArgs": [],
             "args": [
                 "${workspaceFolder}/src/server.ts"
             ],

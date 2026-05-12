@@ -1,0 +1,14 @@
+.git
+.github
+.vscode
+node_modules
+dist
+npm-debug.log*
+*.tar
+.env
+.env.*
+local.settings.json
+az-functions-onprem-docker-image.tar
+README.md
+AGENTS.md
+deploy

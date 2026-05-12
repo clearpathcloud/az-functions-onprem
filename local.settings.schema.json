@@ -1,55 +1,74 @@
 {
     "$schema": "http://json-schema.org/draft-07/schema#",
     "type": "object",
+    "additionalProperties": true,
     "properties": {
         "Values": {
             "type": "object",
+            "additionalProperties": true,
             "properties": {
-                "AZURE_CUSTOM_HEADER_TOKEN": {
+                "FN_AUTH_HEADER": {
                     "type": "string",
-                    "description": "A secret token defined in the SSO headers for the proxy app",
+                    "description": "Required. Secret that must appear in the `token` HTTP header for `authLevel: \"header\"` actions (default for all actions). Rotate by editing and restarting the service.",
                     "examples": [
                         "00000000-0000-0000-0000-000000000000"
                     ]
                 },
-                "SERVICE_TYPE": {
-                    "type": "string", 
-                    "description": "Execution context for the service",
+                "FN_SERVICE_TYPE": {
+                    "type": "string",
+                    "description": "Required. Where this is running. `dev` enables loopback-bypass for 127.0.0.1/::1 (local iteration). `windows` enables Application Event Log writes. `docker` is the plain container path.",
                     "enum": [
                         "docker",
                         "windows",
                         "dev"
                     ]
                 },
-                "WEB_INTEGRATIONS_API_KEY" : {
+                "FN_AUTH_KEY": {
                     "type": "string",
-                    "description": "Used to authenticate users of this service",
+                    "description": "Required. Fallback secret accepted as `?apiKey=...` only on actions explicitly marked `authLevel: \"key\"`. Use when callers can't set request headers.",
                     "examples": [
                         "00000000-0000-0000-0000-000000000000"
                     ]
                 },
-                "WEBSITE_BLOB_SAS": {
-                    "type": "string",
-                    "description": "Blob SAS URL (via Azure)",
-                    "examples": [
-                        "https://<URI>.blob.core.windows.net/<CONTAINER>?sv=<DATE>&sig=<SIG>&spr=https etc"
-                    ]
-                },
-                "PORT": {
+                "FN_PORT": {
                     "type": "integer",
-                    "description": "The port to listen on",
+                    "description": "Optional. TCP port the HTTP server binds to. Default 3000.",
                     "examples": [
-                        8080, 3000
+                        8080,
+                        3000
                     ],
                     "maximum": 65535,
                     "minimum": 1
+                },
+                "FN_CORS_ORIGINS": {
+                    "type": "string",
+                    "description": "Optional. Comma-separated list of origins allowed to make cross-origin requests. Each origin must be exact - `*` throws at boot. Leave blank to disable CORS entirely.",
+                    "examples": [
+                        "https://internal.example.com,https://admin.example.com"
+                    ]
+                },
+                "FN_BIND_HOST": {
+                    "type": "string",
+                    "description": "Optional. Network interface to bind to. Default 0.0.0.0 (all). Set to `127.0.0.1` when running behind a co-located reverse proxy so the service refuses direct connections.",
+                    "examples": [
+                        "127.0.0.1",
+                        "0.0.0.0"
+                    ]
+                },
+                "FN_RATE_LIMIT_PER_MINUTE": {
+                    "type": "integer",
+                    "description": "Optional. Per-IP rate cap across all routes, rolling 60s window. Default 120. Set to 0 to disable.",
+                    "minimum": 0,
+                    "examples": [
+                        120,
+                        0
+                    ]
                 }
             },
             "required": [
-                "AZURE_CUSTOM_HEADER_TOKEN",
-                "SERVICE_TYPE",
-                "WEB_INTEGRATIONS_API_KEY",
-                "WEBSITE_BLOB_SAS"
+                "FN_AUTH_HEADER",
+                "FN_SERVICE_TYPE",
+                "FN_AUTH_KEY"
             ]
         }
     },
