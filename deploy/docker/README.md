@@ -1,6 +1,6 @@
 # Docker + Github Deployment Instructions
 
-1. Move the optional `github-workflows-docker.yml` file to `/.github/workflows/docker.yml`, or change for your CI/CD env. The default active CI workflow only typechecks the project.
+1. Move the optional `github-workflows-docker.yml` file to `/.github/workflows/docker.yml`, or change for your CI/CD env. The template ships with no CI workflows active.
 2. Ensure whatever container service you're using has access to your package registry.
 3. Deploy using an .env file with variables that match the `local.settings.schema.json` (the `local.settings.json` package is not included in the image).
 

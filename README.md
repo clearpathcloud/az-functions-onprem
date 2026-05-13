@@ -1,6 +1,5 @@
 # az-functions-onprem
 
-[![CI](https://github.com/alirobe/az-functions-onprem/actions/workflows/ci.yml/badge.svg)](https://github.com/alirobe/az-functions-onprem/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue)](LICENSE)
 [![Node](https://img.shields.io/badge/node-%E2%89%A5%2023.6-339933)](https://nodejs.org)
 
@@ -35,32 +34,33 @@ curl http://localhost:3000/action/hello
 
 ## Good reasons to use this
 
-- **ERP → CRM sync.** SQL/OData read, push summary to HubSpot/Salesforce.
-- **DB → website cache.** Internal DB → JSON blob → cache-clear endpoint.
-- **Inbound webhook.** Receive SaaS webhook, verify HMAC, project into SharePoint / DB.
-- **AD → SaaS provisioning.** Read groups via LDAP, mirror to Okta/Entra.
-- **SFTP file drop.** Poll, transform, upload to Blob.
-- **Webpart showing internal data.** Internal API for SPFx / Power Apps / custom UI, without opening a firewall port or dealing with CORS preflight.
-- **Internal notification fan-out.** App alert → Teams/Slack/email/PagerDuty.
+Mostly useful to prototype an Azure Function that will run on-prem until a cloud deployment is ready, with the intention to migrate to Azure later.
 
-Recipes for the first three live in `src/actions/examples/`.
+The sorts of functions that this might be used for:
+
+- **Sync On-site ERP → Cloud CRM.** SQL/OData read, push summary to HubSpot/Salesforce.
+- **Sync On-site DB → SFTP or Web Hosting.** Poll, transform, upload.
+- **Inbound webhook → Local DB.** Receive SaaS webhook, verify HMAC, project into DB.
+- **Scheduled internal report.** Pull from DB, write to file share or email.
+- **On-site DB → SPFX (SharePoint) WebPart.** Internal API for SPFx / Power Apps / custom UI. For example, Custom LOB system feeds to intranet. (N.B. consider scaling! SP list/file sync would be appropriate for high traffic.)
+- **On-site event → Cloud alert.** App alert → Teams/Slack/email/PagerDuty.
 
 ## When to avoid
 
 - If you can use real Azure Functions (cloud data, Entra identity, no firewall blockers), do so.
 - If you need autoscaling beyond a single Windows box / container, consider other options.
-- If [Azure Stack](https://learn.microsoft.com/en-us/azure-stack), [vendor alternatives](https://www.nutanix.com), or *just running a container* is preferable, please consider those options.
+- If [Azure Local](https://azure.microsoft.com/en-us/products/local), [vendor alternatives](https://www.nutanix.com), or *just running a container* is preferable, please consider those options!
 - If you'll hit above ~10 req/s, consider other options, or at least be sure to implement server-side caching.
 
 ## Comparison
 
 |                              | this                | Azure Functions     | Logic Apps / Power Automate | Express + cron |
 | ---------------------------- | ------------------- | ------------------- | --------------------------- | -------------- |
-| Runs behind firewall         | yes                 | Premium + VNet only | no                          | yes            |
+| Runs behind firewall         | yes                 | Premium + VNet      | no                          | yes            |
 | Built-in scheduler           | yes                 | yes                 | yes                         | no             |
 | OpenAPI auto-generated       | yes                 | no                  | no                          | no             |
 | Operates fully offline       | yes                 | no                  | no                          | yes            |
-| Migration to Azure Functions | trivial             | n/a                 | rewrite                     | rewrite        |
+| Migration to Azure Functions | easy                | n/a                 | rewrite                     | rewrite        |
 
 ## Migrating to Azure Functions
 
@@ -104,7 +104,7 @@ npm run dev         # node --watch on src/server.ts
 
 ## Source layout
 
-```
+```text
 src/
 ├── runtime/      framework. Don't touch.
 ├── actions/      your actions (see src/actions/README.md)
@@ -209,8 +209,8 @@ Primary mechanism is `local.settings.json` at the project root (gitignored). Mir
 
 | Key                        | Required | Default     | Purpose |
 | -------------------------- | -------- | ----------- | ------- |
-| `FN_AUTH_HEADER`           | yes      | —           | Secret accepted in the `token` HTTP header for default (`authLevel: "header"`) actions. Rotate by editing + restarting. |
 | `FN_SERVICE_TYPE`          | yes      | —           | Where this is running: `dev` (loopback-bypass on 127.0.0.1/::1), `windows` (Application Event Log), or `docker`. |
+| `FN_AUTH_HEADER`           | yes      | —           | Secret accepted in the `token` HTTP header for default (`authLevel: "header"`) actions. Rotate by editing + restarting. |
 | `FN_AUTH_KEY`              | yes      | —           | Fallback secret accepted as `?apiKey=...` only on actions explicitly marked `authLevel: "key"`. For callers that can't set headers. |
 | `FN_PORT`                  | no       | `3000`      | TCP port the HTTP server binds to. |
 | `FN_CORS_ORIGINS`          | no       | empty (off) | Comma-separated list of allowed origins. `*` throws at boot. |

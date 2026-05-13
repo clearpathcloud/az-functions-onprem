@@ -57,4 +57,4 @@ Read `README.md` for what this is and how to author actions. This file flags thi
 
 - Dockerfile uses `node:slim`, copies `package*.json`, runs `npm ci --omit=dev`. Keep `package-lock.json` current.
 - Windows service definition runs `src/server.ts` directly via `node-windows`. The default service name is a "rename me" placeholder; the deployer is expected to edit `src/config/windows-service.ts` before installing, so the registered service in `services.msc` doesn't look like a Microsoft product.
-- CI workflow at `.github/workflows/ci.yml` (typecheck on PR / main). Docker publishing template lives at `deploy/docker/github-workflows-docker.yml` until moved into `.github/workflows/`.
+- No default CI. Docker publishing template lives at `deploy/docker/github-workflows-docker.yml` until moved into `.github/workflows/`.
