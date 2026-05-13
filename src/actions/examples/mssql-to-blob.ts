@@ -18,7 +18,7 @@ import uploadBlob from "../../helpers/sample-upload-blob.ts";
 defineAction({
     name: "mssqlToBlob",
     description: "Snapshot a SQL Server table to JSON blob.",
-    schedule: "0 2 * * *", // 02:00 daily
+    schedule: "0 0 2 * * *", // 02:00 daily
     timeoutMs: 5 * 60_000,
     handler: async () => {
         // Uncomment after `npm install mssql`:

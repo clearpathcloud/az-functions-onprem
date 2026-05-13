@@ -16,6 +16,7 @@
 
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { defineAction, requireRequest } from "../../runtime/registry.ts";
+import getSettings from "../../runtime/settings.ts";
 
 function verifyHmac(secret: string, payload: string, signature: string, algorithm: "sha256" | "sha1" = "sha256"): boolean {
     if (!secret || !signature) return false;
@@ -37,7 +38,7 @@ defineAction({
     authLevel: "anonymous", // The HMAC is the auth; our key/header gates do not apply here.
     handler: async (request) => {
         const req = requireRequest(request);
-        const secret = process.env.WEBHOOK_SECRET ?? "";
+        const secret = getSettings("WEBHOOK_SECRET") ?? "";
         const signature = String(req.get("x-signature") ?? "");
         const raw = JSON.stringify(req.body);
 

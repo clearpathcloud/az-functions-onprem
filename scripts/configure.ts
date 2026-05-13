@@ -37,7 +37,7 @@ async function main() {
 
     let serviceType: ServiceType | undefined;
     while (!serviceType) {
-        const input = (await ask(`FN_SERVICE_TYPE (${SERVICE_TYPES.join("|")})`)).toLowerCase();
+        const input = (await ask(`FN_SERVICE_TYPE (${SERVICE_TYPES.join("|")})`, "dev")).toLowerCase();
         if (SERVICE_TYPES.includes(input as ServiceType)) {
             serviceType = input as ServiceType;
         } else {

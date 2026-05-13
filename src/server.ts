@@ -5,19 +5,35 @@
 // ==========================
 
 import express from "express";
-import type { Request, Response } from "express";
+import type { NextFunction, Request, Response } from "express";
 import helmet from "helmet";
 import cors from "cors";
 import rateLimit from "express-rate-limit";
 import path from "path";
 import { createRequire } from "module";
-import getSettings from "./runtime/settings.ts";
+import getSettings, { validateRuntimeSettings } from "./runtime/settings.ts";
 import { log } from "./runtime/log.ts";
 import { auth } from "./runtime/auth.ts";
-import { getAction, getActions, getLastRun, runAction, runStreamingAction, makeActionLogger, isHttpResponseInit, validateActionGraph, ConcurrencyLimitError, methodsOf, type HttpResponseInit, type InvocationContext } from "./runtime/registry.ts";
-import { registerSchedules } from "./runtime/scheduler.ts";
+import {
+    ConcurrencyLimitError,
+    getAction,
+    getActions,
+    getLastRun,
+    isHttpResponseInit,
+    makeActionLogger,
+    methodsOf,
+    runAction,
+    runStreamingAction,
+    validateActionGraph,
+    type HttpMethod,
+    type HttpResponseInit,
+    type InvocationContext,
+} from "./runtime/registry.ts";
+import { registerSchedules, stopSchedules } from "./runtime/scheduler.ts";
 import { buildOpenApiSpec } from "./runtime/openapi.ts";
 import "./actions/index.ts";
+
+validateRuntimeSettings();
 
 const packageJson = createRequire(import.meta.url)("../package.json") as { name: string; version: string };
 
@@ -53,7 +69,8 @@ if (rateLimitPerMinute > 0) {
     app.use(
         rateLimit({
             windowMs: 60_000,
-            max: rateLimitPerMinute,
+            limit: rateLimitPerMinute,
+            skip: (req) => req.path === "/healthz",
             standardHeaders: "draft-7",
             legacyHeaders: false,
             message: { error: "Too many requests" },
@@ -62,8 +79,29 @@ if (rateLimitPerMinute > 0) {
     log(`rate-limit: ${rateLimitPerMinute} requests/minute per IP`);
 }
 
-app.use(express.json({ limit: "1mb" }));
-app.use(express.urlencoded({ extended: false, limit: "1mb" }));
+function actionBodyErrorHandler(error: unknown, _req: Request, res: Response, next: NextFunction): void {
+    if (!error) return next();
+    const err = error as { message?: string; status?: number; statusCode?: number; type?: string };
+    const status = err.status ?? err.statusCode ?? (err.type === "entity.too.large" ? 413 : 400);
+    const requestId = String(res.getHeader("x-request-id") ?? "");
+    const message = status === 413 ? "Request body too large" : "Invalid request body";
+    log(`${requestId} ${message}: ${err.message ?? "parse failure"}`, "warn");
+    res.status(status).json({ error: message, requestId });
+}
+
+function sendHttpResponse(res: Response, response: HttpResponseInit): void {
+    if (response.headers) {
+        for (const [key, value] of Object.entries(response.headers)) res.setHeader(key, value);
+    }
+    if (typeof response.status === "number") res.status(response.status);
+    if (response.jsonBody !== undefined) {
+        res.json(response.jsonBody);
+    } else if (response.body !== undefined) {
+        res.send(response.body);
+    } else {
+        res.end();
+    }
+}
 
 app.use((req, res, next) => {
     const startedAt = process.hrtime.bigint();
@@ -83,6 +121,10 @@ app.get("/healthz", (req: Request, res: Response) => res.status(200).json({ stat
 app.use(auth);
 
 app.use(express.static(path.join(import.meta.dirname, "public")));
+
+app.use("/action", express.json({ limit: "1mb" }));
+app.use("/action", express.urlencoded({ extended: false, limit: "1mb" }));
+app.use("/action", actionBodyErrorHandler);
 
 // static content
 app.set("views", path.join(import.meta.dirname, "views"));
@@ -106,7 +148,7 @@ app.all("/action/:name", async (req: Request, res: Response) => {
         return;
     }
     const allowed = methodsOf(action);
-    if (!allowed.includes(req.method as "GET" | "POST")) {
+    if (!allowed.includes(req.method as HttpMethod)) {
         res.status(405).set("Allow", allowed.join(", ")).json({ error: `Action "${action.name}" expects ${allowed.join(" or ")}, got ${req.method}.` });
         return;
     }
@@ -121,12 +163,7 @@ app.all("/action/:name", async (req: Request, res: Response) => {
             const result = await runAction(action, req, context);
             if (!res.headersSent) {
                 if (isHttpResponseInit(result)) {
-                    const r = result as HttpResponseInit;
-                    if (r.headers) for (const [k, v] of Object.entries(r.headers)) res.setHeader(k, v);
-                    if (typeof r.status === "number") res.status(r.status);
-                    if (r.jsonBody !== undefined) res.json(r.jsonBody);
-                    else if (r.body !== undefined) res.send(r.body);
-                    else res.end();
+                    sendHttpResponse(res, result);
                 } else {
                     res.json({ action: action.name, result });
                 }
@@ -150,16 +187,18 @@ app.all("/action/:name", async (req: Request, res: Response) => {
 
 // start
 validateActionGraph();
+registerSchedules();
 
 const port = getSettings("FN_PORT", 3000);
 const bindHost = (getSettings("FN_BIND_HOST", "") ?? "").trim() || "0.0.0.0";
 const server = app.listen(Number(port), bindHost, () => {
     log(`Running at http://${bindHost}:${port}/`);
-    registerSchedules();
 });
 
 function shutdown(signal: NodeJS.Signals) {
     log(`${signal} received. Shutting down.`);
+    stopSchedules();
+
     server.close((error) => {
         if (error) {
             console.error(error);

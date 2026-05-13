@@ -1,7 +1,11 @@
-import { BlobClient } from "@azure/storage-blob";
 import getSettings from "../runtime/settings.ts";
 import { log } from "../runtime/log.ts";
 
+// Dependency-free sample upload using a container-scoped SAS URL.
+// For production blob-heavy actions, you may prefer the Azure SDK for retries,
+// richer errors, metadata, streams, content settings, and non-SAS auth flows:
+//     npm install @azure/storage-blob
+// and then use BlobClient / BlockBlobClient from the Azure SDK instead.
 export default async function uploadBlob(fileName: string, fileContents: string): Promise<void> {
     if (!fileName || fileName.includes("/") || fileName.includes("\\") || fileName.includes("..") || fileName.includes("?")) {
         throw new Error("Invalid filename");
@@ -12,11 +16,20 @@ export default async function uploadBlob(fileName: string, fileContents: string)
     if (!containerSas) throw new Error("WEBSITE_BLOB_SAS is not set");
 
     // Assumes a container-scoped SAS whose query string begins with `?sv=`.
-    // Replace this with a proper URL parse if your SAS format differs.
     const fileSas = containerSas.replace("?sv=", `/${safeName}?sv=`);
 
-    const blobClient = new BlobClient(fileSas);
-    const blockBlobClient = blobClient.getBlockBlobClient();
-    await blockBlobClient.upload(fileContents, fileContents.length);
-    log(`Uploaded blob ${blobClient.containerName}/${blobClient.name}`);
+    const response = await fetch(fileSas, {
+        method: "PUT",
+        headers: {
+            "x-ms-blob-type": "BlockBlob",
+            "content-type": "text/plain; charset=utf-8",
+        },
+        body: fileContents,
+    });
+
+    if (!response.ok) {
+        throw new Error(`Blob upload failed: HTTP ${response.status}`);
+    }
+
+    log(`Uploaded blob ${fileName}`);
 }

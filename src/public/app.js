@@ -4,6 +4,35 @@ function outputFor(actionName) {
     return { wrapper, body };
 }
 
+function requestBodyFor(actionName) {
+    return document.querySelector(`[data-body-for="${CSS.escape(actionName)}"]`);
+}
+
+function formatBodyText(text) {
+    try {
+        return JSON.stringify(JSON.parse(text), null, 2);
+    } catch {
+        return text;
+    }
+}
+
+function responsePrefix(response) {
+    if (response.ok) return "";
+    const lines = [`HTTP ${response.status} ${response.statusText || "Error"}`];
+    const retryAfter = response.headers.get("retry-after");
+    const requestId = response.headers.get("x-request-id");
+    if (retryAfter) lines.push(`Retry-After: ${retryAfter}`);
+    if (requestId) lines.push(`Request-Id: ${requestId}`);
+    return `${lines.join("\n")}\n\n`;
+}
+
+function readJsonBody(actionName) {
+    const bodyInput = requestBodyFor(actionName);
+    const rawBody = bodyInput instanceof HTMLTextAreaElement ? bodyInput.value.trim() : "{}";
+    JSON.parse(rawBody || "{}");
+    return rawBody || "{}";
+}
+
 function appendChunk(body, line) {
     if (!line) return;
     try {
@@ -19,12 +48,12 @@ function appendChunk(body, line) {
     body.scrollTop = body.scrollHeight;
 }
 
-async function readNdjson(response, body) {
+async function readNdjson(response, body, prefix = "") {
     if (!response.body) {
-        body.textContent = "(empty response body)";
+        body.textContent = `${prefix}(empty response body)`;
         return;
     }
-    body.textContent = "";
+    body.textContent = prefix;
     const reader = response.body.getReader();
     const decoder = new TextDecoder();
     let buffer = "";
@@ -53,20 +82,22 @@ async function runAction(actionName, triggerButton) {
     try {
         const init = { method };
         if (method === "POST") {
+            try {
+                init.body = readJsonBody(actionName);
+            } catch (error) {
+                body.textContent = `Invalid JSON body: ${error instanceof Error ? error.message : String(error)}`;
+                return;
+            }
             init.headers = { "Content-Type": "application/json" };
-            init.body = "{}";
         }
         const response = await fetch(`/action/${encodeURIComponent(actionName)}`, init);
         const contentType = (response.headers.get("content-type") ?? "").toLowerCase();
+        const statusPrefix = responsePrefix(response);
         if (contentType.includes("application/x-ndjson")) {
-            await readNdjson(response, body);
+            await readNdjson(response, body, statusPrefix);
         } else {
             const text = await response.text();
-            try {
-                body.textContent = JSON.stringify(JSON.parse(text), null, 2);
-            } catch {
-                body.textContent = text;
-            }
+            body.textContent = statusPrefix + formatBodyText(text);
         }
     } catch (error) {
         body.textContent += `\nRequest failed: ${error instanceof Error ? error.message : String(error)}`;

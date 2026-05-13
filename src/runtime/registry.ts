@@ -1,6 +1,10 @@
 import type { Request } from "express";
 import { log as runtimeLog, type LogLevel } from "./log.ts";
 
+function isValidHttpStatus(value: unknown): value is number {
+    return typeof value === "number" && Number.isInteger(value) && value >= 100 && value <= 599;
+}
+
 export interface ActionLogger {
     (message: string): void;
     trace(message: string): void;
@@ -47,14 +51,12 @@ export function httpResponse(init: HttpResponseInit): HttpResponseInit {
 export function isHttpResponseInit(value: unknown): value is HttpResponseInit {
     if (!value || typeof value !== "object") return false;
     const v = value as Record<string, unknown>;
-    if ("jsonBody" in v) return true;
-    if (typeof v.status === "number" && ("body" in v || "headers" in v)) return true;
-    return false;
+    return "jsonBody" in v || "body" in v || "headers" in v || isValidHttpStatus(v.status);
 }
 
 type Awaitable<T> = T | Promise<T>;
 type Handler = (request: HttpRequest | undefined, context: InvocationContext) => Awaitable<unknown>;
-type StreamHandler = (request: HttpRequest, context: InvocationContext) => AsyncGenerator<unknown, unknown, unknown>;
+type StreamHandler = (request: HttpRequest | undefined, context: InvocationContext) => AsyncGenerator<unknown, unknown, unknown>;
 type SuccessHook = (result: unknown, request: HttpRequest | undefined, context: InvocationContext) => Awaitable<unknown>;
 
 export type AuthLevel = "anonymous" | "key" | "header";
@@ -237,10 +239,72 @@ export async function runAction(action: HandlerActionDefinition, request: HttpRe
     }
 }
 
-/** Async generator that yields whatever a stream or sequence action emits. Stream actions are HTTP-only; the scheduler refuses them at boot. */
+type SequenceStepEvent = {
+    step: string;
+    status: "started" | "done" | "failed";
+    error?: string;
+};
+
+export async function runStreamAction(
+    action: StreamActionDefinition,
+    request: HttpRequest | undefined,
+    context: InvocationContext,
+    onChunk?: (chunk: unknown) => Awaitable<void>,
+): Promise<void> {
+    for await (const chunk of streamOf(action, request, context)) {
+        await onChunk?.(chunk);
+    }
+}
+
+/** Run a sequence without writing HTTP output. Used by the scheduler. */
+export async function runSequenceAction(
+    action: SequenceActionDefinition,
+    request: HttpRequest | undefined,
+    context: InvocationContext,
+    onStep?: (event: SequenceStepEvent) => Awaitable<void>,
+): Promise<void> {
+    if (!tryAcquireSlot(action)) {
+        throw new ConcurrencyLimitError(action.name, action.concurrency ?? 0);
+    }
+    const start = Date.now();
+    let status: "ok" | "fail" = "ok";
+    try {
+        for (const stepName of action.steps) {
+            const step = getAction(stepName);
+            if (!step) {
+                await onStep?.({ step: stepName, status: "failed", error: `"${stepName}" is not registered` });
+                throw new Error(`Step "${stepName}" referenced by "${action.name}" is not registered.`);
+            }
+            await onStep?.({ step: stepName, status: "started" });
+            try {
+                if ("stream" in step) {
+                    await runStreamAction(step, request, context);
+                } else if ("steps" in step) {
+                    await runSequenceAction(step, request, context, onStep);
+                } else {
+                    await runAction(step, request, context);
+                }
+                await onStep?.({ step: stepName, status: "done" });
+            } catch (error) {
+                const message = error instanceof Error ? error.message : String(error);
+                await onStep?.({ step: stepName, status: "failed", error: message });
+                throw error;
+            }
+        }
+        if (action.onSuccess) await action.onSuccess(undefined, request, context);
+    } catch (error) {
+        status = "fail";
+        throw error;
+    } finally {
+        recordRun(action, status, start);
+        releaseSlot(action);
+    }
+}
+
+/** Async generator that yields whatever a stream or sequence action emits. */
 export async function* streamOf(
     action: StreamActionDefinition | SequenceActionDefinition,
-    request: HttpRequest,
+    request: HttpRequest | undefined,
     context: InvocationContext,
 ): AsyncGenerator<unknown> {
     if (!tryAcquireSlot(action)) {
@@ -332,16 +396,21 @@ export async function runStreamingAction(
         }
         res.end();
     } catch (error) {
+        if (error instanceof ConcurrencyLimitError) {
+            if (!started && !res.headersSent) {
+                res.status(429).set("Retry-After", "30").json({ error: error.message });
+            } else {
+                res.write(JSON.stringify({ error: error.message, invocationId }) + "\n");
+                res.end();
+            }
+            return;
+        }
         const message = error instanceof Error ? error.message : String(error);
         runtimeLog(`${invocationId} action "${action.name}" stream failed: ${message}`, "error");
         if (!started && !res.headersSent) {
             res.status(500).json({ action: action.name, error: "Action failed", invocationId });
         } else {
-            try {
-                res.write(JSON.stringify({ error: "Action failed", invocationId }) + "\n");
-            } catch {
-                /* connection probably closed; ignore */
-            }
+            res.write(JSON.stringify({ error: "Action failed", invocationId }) + "\n");
             res.end();
         }
     }

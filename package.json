@@ -8,19 +8,17 @@
         "dev": "node --watch ./src/server.ts",
         "start": "node ./src/server.ts",
         "configure": "node ./scripts/configure.ts",
-        "check": "npm run typecheck",
         "typecheck": "tsc --noEmit",
         "windows-install": "node ./deploy/windows/install.ts",
         "windows-uninstall": "node ./deploy/windows/uninstall.ts",
         "docker-package": "docker build -t az-functions-onprem . && docker save -o az-functions-onprem-docker-image.tar az-functions-onprem"
     },
-    "author": "https://github.com/alirobe",
+    "author": "https://github.com/clearpathcloud",
     "license": "MIT",
     "engines": {
         "node": ">=23.6.0"
     },
     "dependencies": {
-        "@azure/storage-blob": "^12.0.0",
         "cors": "^2.8.6",
         "ejs": "^5.0.0",
         "express": "^5.0.0",
@@ -35,9 +33,5 @@
         "@types/node": "^25.0.0",
         "@types/node-windows": "^0.1.0",
         "typescript": "^6.0.0"
-    },
-    "overrides": {
-        "fast-xml-parser": "^5.8.0",
-        "fast-xml-builder": "^1.2.0"
     }
 }

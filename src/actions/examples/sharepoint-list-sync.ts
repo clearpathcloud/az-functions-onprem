@@ -14,22 +14,23 @@
 // `import "./sharepoint-list-sync.ts";` to src/actions/index.ts.
 
 import { defineAction } from "../../runtime/registry.ts";
+import getSettings from "../../runtime/settings.ts";
 import uploadBlob from "../../helpers/sample-upload-blob.ts";
 
 defineAction({
     name: "sharepointListSync",
     description: "Pull a SharePoint list via Graph, write to blob.",
-    schedule: "*/30 * * * *",
+    schedule: "0 */30 * * * *",
     timeoutMs: 2 * 60_000,
     handler: async () => {
         // Uncomment after `npm install @azure/msal-node`:
         //
         //     const { ConfidentialClientApplication } = await import("@azure/msal-node");
-        //     const tenantId = process.env.TENANT_ID ?? "";
+        //     const tenantId = getSettings("TENANT_ID") ?? "";
         //     const cca = new ConfidentialClientApplication({
         //         auth: {
-        //             clientId: process.env.CLIENT_ID ?? "",
-        //             clientSecret: process.env.CLIENT_SECRET ?? "",
+        //             clientId: getSettings("CLIENT_ID") ?? "",
+        //             clientSecret: getSettings("CLIENT_SECRET") ?? "",
         //             authority: `https://login.microsoftonline.com/${tenantId}`,
         //         },
         //     });
@@ -41,8 +42,8 @@ defineAction({
         //
         //     const items: unknown[] = [];
         //     let next: string | null =
-        //         `https://graph.microsoft.com/v1.0/sites/${process.env.SITE_ID}` +
-        //         `/lists/${process.env.LIST_ID}/items?expand=fields&$top=200`;
+        //         `https://graph.microsoft.com/v1.0/sites/${getSettings("SITE_ID") ?? ""}` +
+        //         `/lists/${getSettings("LIST_ID") ?? ""}/items?expand=fields&$top=200`;
         //     while (next) {
         //         const r = await fetch(next, { headers: { Authorization: `Bearer ${token}` } });
         //         if (!r.ok) throw new Error(`Graph ${r.status}: ${await r.text()}`);
@@ -53,6 +54,7 @@ defineAction({
         //     await uploadBlob("sharepoint-list.json", JSON.stringify(items));
         //     return { count: items.length };
 
+        void getSettings;
         void uploadBlob;
         return { todo: "install @azure/msal-node and uncomment the handler body" };
     },

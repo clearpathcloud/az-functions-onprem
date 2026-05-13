@@ -26,35 +26,63 @@ function securityFor(action: ActionDefinition): SecurityRequirement[] {
     return [{ headerToken: [] }];
 }
 
+function jsonContent(properties: Record<string, unknown>): Record<string, unknown> {
+    return {
+        content: {
+            "application/json": {
+                schema: {
+                    type: "object",
+                    properties,
+                },
+            },
+        },
+    };
+}
+
+function jsonResponse(description: string, properties: Record<string, unknown>): Record<string, unknown> {
+    return {
+        description,
+        ...jsonContent(properties),
+    };
+}
+
+function ndjsonResponse(description: string, examples: Record<string, { value: string }>): Record<string, unknown> {
+    return {
+        description,
+        content: {
+            "application/x-ndjson": {
+                schema: { type: "string" },
+                examples,
+            },
+        },
+    };
+}
+
 function responseSchemaFor(action: ActionDefinition): Record<string, unknown> {
     const kind = kindOf(action);
     if (kind === "handler") {
-        return {
-            description: "Action completed.",
-            content: {
-                "application/json": {
-                    schema: {
-                        type: "object",
-                        properties: {
-                            action: { type: "string", example: action.name },
-                            result: { type: "object" },
-                        },
-                    },
-                },
-            },
-        };
+        return jsonResponse("Action completed. Handlers return this wrapper unless they return HttpResponseInit.", {
+            action: { type: "string", example: action.name },
+            result: { type: "object" },
+        });
     }
     if (kind === "sequence") {
-        return {
-            description: "Sequence stream. Each NDJSON line describes a step transition (started / progress / done / failed).",
-            content: { "application/x-ndjson": { schema: { type: "string" } } },
-        };
+        return ndjsonResponse("Sequence stream. Each line is a step transition.", {
+            started: { value: "{\"step\":\"sampleHandler\",\"status\":\"started\",\"at\":\"2026-05-13T00:00:00.000Z\"}\n" },
+            done: { value: "{\"step\":\"sampleHandler\",\"status\":\"done\",\"result\":{\"ok\":true},\"at\":\"2026-05-13T00:00:01.000Z\"}\n" },
+            failed: { value: "{\"step\":\"sampleHandler\",\"status\":\"failed\",\"error\":\"Action failed\",\"at\":\"2026-05-13T00:00:01.000Z\"}\n" },
+        });
     }
-    return {
-        description: "Streaming output. Each NDJSON line is a yielded value from the generator.",
-        content: { "application/x-ndjson": { schema: { type: "string" } } },
-    };
+    return ndjsonResponse("Streaming output. Each line is a yielded value from the generator.", {
+        progress: { value: "{\"phase\":\"progress\",\"step\":1,\"of\":4}\n" },
+    });
 }
+
+const errorJson = jsonContent({
+    error: { type: "string" },
+    requestId: { type: "string" },
+    invocationId: { type: "string" },
+});
 
 export function buildOpenApiSpec(info: { title: string; version: string }) {
     const paths: Record<string, OpenApiPath> = {};
@@ -83,7 +111,6 @@ export function buildOpenApiSpec(info: { title: string; version: string }) {
 
     for (const action of getActions()) {
         const kind = kindOf(action);
-        const summary = [action.description].filter(Boolean).join(" ");
         const tags: string[] = [kind];
         if (action.schedule) tags.push("scheduled");
         const methods = methodsOf(action);
@@ -91,36 +118,26 @@ export function buildOpenApiSpec(info: { title: string; version: string }) {
         for (const method of methods) {
             const opIdSuffix = methods.length > 1 ? `_${method.toLowerCase()}` : "";
             const operation: OpenApiOperation = {
-                summary,
+                summary: action.description,
                 operationId: `${action.name}${opIdSuffix}`,
                 tags,
                 security: securityFor(action),
                 responses: {
                     "200": responseSchemaFor(action),
-                    "401": { description: "Unauthorized" },
-                    "404": {
-                        description: "Action not found",
-                        content: {
-                            "application/json": {
-                                schema: {
-                                    type: "object",
-                                    properties: { error: { type: "string" }, name: { type: "string" } },
-                                },
-                            },
-                        },
-                    },
+                    "401": { description: "Unauthorized", ...errorJson },
+                    "404": jsonResponse("Action not found", { error: { type: "string" }, name: { type: "string" } }),
                     "405": { description: "Method not allowed" },
-                    "500": {
-                        description: "Action failed",
-                        content: {
-                            "application/json": {
-                                schema: {
-                                    type: "object",
-                                    properties: { action: { type: "string" }, error: { type: "string" } },
-                                },
+                    "429": {
+                        description: "Too many requests. Returned by global rate limiting or per-action concurrency caps.",
+                        headers: {
+                            "Retry-After": {
+                                schema: { type: "string" },
+                                description: "Seconds to wait before retrying when known.",
                             },
                         },
+                        ...errorJson,
                     },
+                    "500": jsonResponse("Action failed", { action: { type: "string" }, error: { type: "string" } }),
                 },
             };
             if (method === "POST") {

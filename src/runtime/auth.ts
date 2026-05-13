@@ -24,7 +24,8 @@ export function checkAuth(req: Request, level: AuthLevel): boolean {
     if (level === "anonymous") return true;
     if (isLoopback(req)) return true;
     if (safeEqual(req.headers.token, headerToken)) {
-        log(`${req.headers.upn} accessed ${req.path} via proxy`);
+        const upn = typeof req.headers.upn === "string" && req.headers.upn.trim() ? req.headers.upn : "unknown user";
+        log(`${upn} accessed ${req.path} via proxy`);
         return true;
     }
     if (level === "header") return false;
@@ -50,5 +51,5 @@ export function auth(req: Request, res: Response, next: NextFunction) {
     // must opt in with `authLevel: "key"`. Anonymous actions opt in explicitly.
     const level: AuthLevel = actionAuthLevelForPath(req.path) ?? "header";
     if (checkAuth(req, level)) return next();
-    return res.status(401).send("Unauthorized");
+    return res.status(401).json({ error: "Unauthorized" });
 }

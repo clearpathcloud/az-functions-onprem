@@ -2,15 +2,15 @@
 <html lang="en">
 
 <head>
-    <title>OnPrem Functions</title>
+    <title>az-functions-onprem</title>
     <%- include("./partials/header.ejs") -%>
 </head>
 
 <body>
     <main class="container">
         <hgroup>
-            <h1>OnPrem Functions</h1>
-            <p>Self-hosted integrations. Invoke an action below or hit <code>GET /action/&lt;name&gt;</code> directly.</p>
+            <h1>az-functions-onprem</h1>
+            <p>Self-hosted integrations. Invoke an action below or hit <code>/action/&lt;name&gt;</code> directly.</p>
         </hgroup>
 
         <% if (actions.length === 0) { %>
@@ -22,31 +22,46 @@
         <% actions.forEach(function(action) {
             const kind = action.stream ? "stream" : action.steps ? "sequence" : "handler";
             const lastRun = getLastRun(action.name);
+            const methods = action.methods && action.methods.length ? action.methods : ["GET", "POST"];
+            const postAllowed = methods.includes("POST");
+            const actionTitleId = `action-${action.name}`;
+            const outputId = `output-${action.name}`;
         %>
-            <article>
-                <header style="display: flex; align-items: baseline; gap: 1rem; flex-wrap: wrap; margin-bottom: 0.5rem;">
-                    <strong style="flex: 1; min-width: 10rem;"><%= action.name %></strong>
-                    <% const methods = action.methods && action.methods.length ? action.methods : ["GET", "POST"]; %>
-                    <small style="display: flex; gap: 0.35rem; flex-wrap: wrap;">
-                        <kbd><%= kind %></kbd>
-                        <% if (methods.length > 1 || methods[0] !== "GET") { %><kbd>method: <%= methods.join("/") %></kbd><% } %>
-                        <% if (action.schedule) { %><kbd>cron: <%= action.schedule %></kbd><% } %>
-                        <% if (action.timeoutMs) { %><kbd>timeout: <%= action.timeoutMs %>ms</kbd><% } %>
-                        <% if (action.authLevel) { %><kbd>authLevel: <%= action.authLevel %></kbd><% } %>
-                        <% if (action.concurrency) { %><kbd>concurrency: <%= action.concurrency %></kbd><% } %>
-                        <% if (action.onSuccess) { %><kbd>hook</kbd><% } %>
-                        <% if (lastRun) { %>
-                            <kbd title="<%= lastRun.at %> (<%= lastRun.durationMs %>ms <%= lastRun.status %>)">last: <%= new Date(lastRun.at).toLocaleTimeString() %><% if (lastRun.status === "fail") { %> ✗<% } %></kbd>
-                        <% } else { %>
-                            <kbd>last: never</kbd>
-                        <% } %>
-                    </small>
-                    <button type="button" data-action="<%= action.name %>" data-method="<%= methods[0] %>" style="margin: 0;">Run</button>
+            <article class="action-card" aria-labelledby="<%= actionTitleId %>">
+                <header class="action-card-header">
+                    <div class="action-card-main">
+                        <h2 id="<%= actionTitleId %>" class="action-title"><%= action.name %></h2>
+                        <small class="action-meta">
+                            <kbd><%= kind %></kbd>
+                            <kbd>method: <%= methods.join("/") %></kbd>
+                            <% if (action.schedule) { %><kbd>cron: <%= action.schedule %></kbd><% } %>
+                            <% if (action.timeoutMs) { %><kbd>timeout: <%= action.timeoutMs %>ms</kbd><% } %>
+                            <kbd>auth: <%= action.authLevel || "header" %></kbd>
+                            <% if (action.concurrency) { %><kbd>concurrency: <%= action.concurrency %></kbd><% } %>
+                            <% if (action.onSuccess) { %><kbd>hook</kbd><% } %>
+                            <% if (lastRun) { %>
+                                <kbd class="status-badge status-<%= lastRun.status %>">last: <%= lastRun.status %> <%= new Date(lastRun.at).toLocaleTimeString() %> (<%= lastRun.durationMs %>ms)</kbd>
+                            <% } else { %>
+                                <kbd>last: never</kbd>
+                            <% } %>
+                        </small>
+                    </div>
+                    <div class="action-run-controls" aria-label="Run <%= action.name %>">
+                        <% methods.forEach(function(method) { %>
+                            <button type="button" data-action="<%= action.name %>" data-method="<%= method %>" aria-label="Run <%= action.name %> with <%= method %>" aria-describedby="<%= outputId %>">Run <%= method %></button>
+                        <% }) %>
+                    </div>
                 </header>
-                <p style="margin: 0;"><%= action.description %></p>
+                <p class="action-description"><%= action.description %></p>
+                <% if (postAllowed) { %>
+                    <details class="request-body">
+                        <summary>POST body</summary>
+                        <textarea data-body-for="<%= action.name %>" spellcheck="false">{}</textarea>
+                    </details>
+                <% } %>
                 <div class="action-output-wrapper" data-output-wrapper-for="<%= action.name %>" hidden>
                     <button type="button" class="action-output-close" data-close-output="<%= action.name %>" aria-label="Close output">&times;</button>
-                    <pre class="action-output" data-output-for="<%= action.name %>" aria-live="polite" tabindex="0"></pre>
+                    <pre id="<%= outputId %>" class="action-output" data-output-for="<%= action.name %>" aria-live="polite" tabindex="0"></pre>
                 </div>
             </article>
         <% }) %>

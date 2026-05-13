@@ -23,7 +23,7 @@ Then wire it up in `src/actions/index.ts`:
 import "./sync-customers.ts";
 ```
 
-The runtime auto-registers the route (`GET /action/syncCustomers`), the index-page card, the OpenAPI entry, and, if you set a `schedule`, the cron job.
+The runtime auto-registers `GET`/`POST /action/syncCustomers` by default, plus the index card, OpenAPI entry, and cron job when `schedule` is set.
 
 ## Action forms
 
@@ -33,18 +33,19 @@ An action takes one of three forms, picked by which field you supply:
 - `steps: ["a", "b"]` - sequence of other registered actions; streamed as NDJSON step events.
 - `stream: async function*(request, context) { yield ... }` - async generator, NDJSON one line per yield.
 
-All three accept optional `timeoutMs`, `onSuccess(result, request, context)`, `schedule` (cron), `methods` (defaults to `["GET","POST"]`), and `authLevel` (`anonymous` / `key` / `header`).
+All three accept optional `timeoutMs`, `onSuccess(result, request, context)`, `schedule` (cron), `methods` (default `["GET","POST"]`), `authLevel` (`anonymous` / `key` / `header`, default `header`), and `concurrency` (per-action in-flight cap).
 
-`request` is `HttpRequest | undefined` - undefined when the scheduler triggered the action. For HTTP-only handlers, call `requireRequest(request)` at the top to assert and narrow.
+`request` is `HttpRequest | undefined` - undefined when the scheduler triggered the action. For HTTP-only actions, call `requireRequest(request)` at the top to assert and narrow. Scheduled stream actions are drained to completion; yielded chunks are not sent anywhere unless your action logs or writes them to a downstream system.
 
 ## Sample files
 
 `sample-handler.ts`, `sample-stream.ts`, `sample-sequence.ts` are starter examples. Delete them when you're writing your own.
 
-## Where things live
+### Common on-prem packages
 
-- Runtime (framework, don't touch normally): `src/runtime/`
-- Your actions: this folder
-- Your helpers: `src/helpers/` (e.g. `sample-upload-blob.ts`)
-- Service config: `src/config/`
-- UI: `src/views/`, `src/public/`
+Not bundled. You can install these using `npm i` and then import them to use them.
+
+- **`mssql`** - SQL Server. See `src/actions/examples/mssql-to-blob.ts`.
+- **`@azure/msal-node`** - Entra auth for Graph / SharePoint / Dataverse. See `src/actions/examples/sharepoint-list-sync.ts`.
+- **`ldapjs`** - Active Directory queries.
+- **`pino`** - structured JSON logging.
