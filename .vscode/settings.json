@@ -2,5 +2,7 @@
     "[typescript][ejs][json][javascript]": {
         "editor.formatOnSave": true,
         "editor.defaultFormatter": "esbenp.prettier-vscode"
-    }
+    },
+    "codeQL.githubDatabase.download": "never",
+    "sarif-viewer.connectToGithubCodeScanning": "off"
 }

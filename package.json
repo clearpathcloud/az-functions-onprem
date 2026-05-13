@@ -10,7 +10,6 @@
         "configure": "node ./scripts/configure.ts",
         "check": "npm run typecheck",
         "typecheck": "tsc --noEmit",
-        "prepare": "husky",
         "windows-install": "node ./deploy/windows/install.ts",
         "windows-uninstall": "node ./deploy/windows/uninstall.ts",
         "docker-package": "docker build -t az-functions-onprem . && docker save -o az-functions-onprem-docker-image.tar az-functions-onprem"
@@ -35,7 +34,6 @@
         "@types/express": "^5.0.0",
         "@types/node": "^25.0.0",
         "@types/node-windows": "^0.1.0",
-        "husky": "^9.1.7",
         "typescript": "^6.0.0"
     },
     "overrides": {
