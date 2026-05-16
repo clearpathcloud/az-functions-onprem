@@ -157,7 +157,7 @@ Use `local.settings.json` at the project root (gitignored). It mirrors Azure Fun
 | `FN_AUTH_KEY`              | yes      | —           | Fallback secret accepted as `?apiKey=...` only on actions explicitly marked `authLevel: "key"`. For callers that can't set headers. |
 | `FN_PORT`                  | no       | `3000`      | TCP port the HTTP server binds to. |
 | `FN_CORS_ORIGINS`          | no       | empty (off) | Comma-separated list of allowed origins. `*` throws at boot. |
-| `FN_BIND_HOST`             | no       | `0.0.0.0`   | Interface to bind to. Set `127.0.0.1` behind a co-located proxy to refuse direct connections. |
+| `FN_BIND_HOST`             | no       | derived     | Interface to bind to. Defaults to `127.0.0.1` for `windows`/`dev` (refuses direct LAN connections; pair with a co-located proxy) and `0.0.0.0` for `docker`. Override to expose another interface. |
 | `FN_RATE_LIMIT_PER_MINUTE` | no       | `120`       | Per-IP rate cap across all routes (rolling 60s window). `0` disables. |
 
 Schema descriptions match this table — VS Code shows them inline while you edit. Extra keys (your own helpers, libraries) are accepted; read them with `getSettings("YOUR_KEY")`.

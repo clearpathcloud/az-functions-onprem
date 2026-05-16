@@ -1,5 +1,41 @@
 /* Clear Path Research brand tokens - hand-rolled subset, no build step. */
 
+@font-face {
+    font-family: "Poppins";
+    font-style: normal;
+    font-weight: 400;
+    font-display: swap;
+    src: url("/vendor/fonts/poppins-400.woff2") format("woff2");
+}
+@font-face {
+    font-family: "Poppins";
+    font-style: normal;
+    font-weight: 500;
+    font-display: swap;
+    src: url("/vendor/fonts/poppins-500.woff2") format("woff2");
+}
+@font-face {
+    font-family: "Poppins";
+    font-style: normal;
+    font-weight: 600;
+    font-display: swap;
+    src: url("/vendor/fonts/poppins-600.woff2") format("woff2");
+}
+@font-face {
+    font-family: "Poppins";
+    font-style: normal;
+    font-weight: 700;
+    font-display: swap;
+    src: url("/vendor/fonts/poppins-700.woff2") format("woff2");
+}
+@font-face {
+    font-family: "JetBrains Mono";
+    font-style: normal;
+    font-weight: 400 500;
+    font-display: swap;
+    src: url("/vendor/fonts/jetbrains-mono.woff2") format("woff2");
+}
+
 :root {
     color-scheme: dark;
     --bg: oklch(13% 0.01 55);

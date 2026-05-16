@@ -49,7 +49,7 @@
                 },
                 "FN_BIND_HOST": {
                     "type": "string",
-                    "description": "Optional. Network interface to bind to. Default 0.0.0.0 (all). Set to `127.0.0.1` when running behind a co-located reverse proxy so the service refuses direct connections.",
+                    "description": "Optional. Network interface to bind to. Defaults: `127.0.0.1` for `windows`/`dev` (refuses direct LAN connections, pair with a co-located proxy like Entra Application Proxy), `0.0.0.0` for `docker`. Override only when you need to expose another interface.",
                     "examples": [
                         "127.0.0.1",
                         "0.0.0.0"

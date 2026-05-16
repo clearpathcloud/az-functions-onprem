@@ -8,7 +8,7 @@ type SettingsValues = {
     FN_AUTH_KEY: string;
     FN_PORT?: number | string;
     FN_CORS_ORIGINS?: string;
-    /** Interface to bind to. Default 0.0.0.0 (all). Set to "127.0.0.1" for co-located proxy deployments to refuse direct connections. */
+    /** Interface to bind to. Defaults: 127.0.0.1 for `windows`/`dev` (refuses direct LAN connections; pair with a co-located proxy), 0.0.0.0 for `docker`. */
     FN_BIND_HOST?: string;
     /** Max requests per minute per IP across all routes. Default 120. Set to 0 to disable. */
     FN_RATE_LIMIT_PER_MINUTE?: number | string;

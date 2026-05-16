@@ -4,10 +4,6 @@ import getSettings from "./settings.ts";
 import { log } from "./log.ts";
 import { getAction, type AuthLevel } from "./registry.ts";
 
-const apiKey = getSettings("FN_AUTH_KEY");
-const headerToken = getSettings("FN_AUTH_HEADER");
-const serviceType = getSettings("FN_SERVICE_TYPE");
-
 function safeEqual(a: unknown, b: string): boolean {
     if (typeof a !== "string" || a.length === 0 || b.length === 0) return false;
     const aBuf = Buffer.from(a);
@@ -17,19 +13,19 @@ function safeEqual(a: unknown, b: string): boolean {
 }
 
 function isLoopback(req: Request): boolean {
-    return serviceType === "dev" && (req.ip === "127.0.0.1" || req.ip === "::1");
+    return getSettings("FN_SERVICE_TYPE") === "dev" && (req.ip === "127.0.0.1" || req.ip === "::1");
 }
 
 export function checkAuth(req: Request, level: AuthLevel): boolean {
     if (level === "anonymous") return true;
     if (isLoopback(req)) return true;
-    if (safeEqual(req.headers.token, headerToken)) {
+    if (safeEqual(req.headers.token, getSettings("FN_AUTH_HEADER"))) {
         const upn = typeof req.headers.upn === "string" && req.headers.upn.trim() ? req.headers.upn : "unknown user";
         log(`${upn} accessed ${req.path} via proxy`);
         return true;
     }
     if (level === "header") return false;
-    return safeEqual(req.query.apiKey, apiKey);
+    return safeEqual(req.query.apiKey, getSettings("FN_AUTH_KEY"));
 }
 
 function actionAuthLevelForPath(path: string): AuthLevel | undefined {

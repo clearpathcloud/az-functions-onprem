@@ -12,7 +12,7 @@ import rateLimit from "express-rate-limit";
 import path from "path";
 import { createRequire } from "module";
 import getSettings, { validateRuntimeSettings } from "./runtime/settings.ts";
-import { log } from "./runtime/log.ts";
+import { log, setEventLogger } from "./runtime/log.ts";
 import { auth } from "./runtime/auth.ts";
 import {
     ConcurrencyLimitError,
@@ -35,6 +35,12 @@ import "./actions/index.ts";
 
 validateRuntimeSettings();
 
+if (getSettings("FN_SERVICE_TYPE") === "windows") {
+    const { serviceDefinition } = await import("./config/windows-service.ts");
+    const { EventLogger } = createRequire(import.meta.url)("node-windows") as typeof import("node-windows");
+    setEventLogger(new EventLogger({ source: serviceDefinition.name }));
+}
+
 const packageJson = createRequire(import.meta.url)("../package.json") as { name: string; version: string };
 
 export const app: express.Express = express();
@@ -45,9 +51,9 @@ app.use(
         contentSecurityPolicy: {
             directives: {
                 ...helmet.contentSecurityPolicy.getDefaultDirectives(),
-                "script-src": ["'self'", "https://cdnjs.cloudflare.com"],
-                "style-src": ["'self'", "https:", "'unsafe-inline'"],
-                "font-src": ["'self'", "https:", "data:"],
+                "script-src": ["'self'"],
+                "style-src": ["'self'", "'unsafe-inline'"],
+                "font-src": ["'self'", "data:"],
                 "worker-src": ["'self'", "blob:"],
             },
         },
@@ -190,7 +196,10 @@ validateActionGraph();
 registerSchedules();
 
 const port = getSettings("FN_PORT", 3000);
-const bindHost = (getSettings("FN_BIND_HOST", "") ?? "").trim() || "0.0.0.0";
+// Default to loopback so a `windows` or `dev` deployment behind App Proxy can't be reached directly
+// from the LAN. Docker has to expose 0.0.0.0 to be reachable from outside the container.
+const defaultBindHost = getSettings("FN_SERVICE_TYPE") === "docker" ? "0.0.0.0" : "127.0.0.1";
+const bindHost = (getSettings("FN_BIND_HOST", "") ?? "").trim() || defaultBindHost;
 const server = app.listen(Number(port), bindHost, () => {
     log(`Running at http://${bindHost}:${port}/`);
 });

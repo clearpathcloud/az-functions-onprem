@@ -11,13 +11,9 @@
         "erasableSyntaxOnly": true,
         "target": "ES2022",
         "rootDir": ".",
-        "outDir": "./dist",
         "noEmit": true,
         "esModuleInterop": true,
         "allowImportingTsExtensions": true,
-        "rewriteRelativeImportExtensions": true,
-        "sourceMap": true,
-        "declaration": true,
         "lib": ["ES2017", "DOM"]
     },
     "include": [
@@ -26,7 +22,6 @@
         "scripts/**/*.ts"
     ],
     "exclude": [
-        "node_modules",
-        "dist"
+        "node_modules"
     ]
 }
